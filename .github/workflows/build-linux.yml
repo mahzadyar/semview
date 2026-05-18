@@ -80,11 +80,14 @@ jobs:
         run: |
           mkdir -p release/dist_archive
           tar -czf release/tifDebloat-dist-linux-x64.tar.gz -C dist tifDebloat || true
-      - name: Upload artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: tifDebloat-linux
-          path: release/tifDebloat
+          path: |
+            release/tifDebloat
+            release/tifDebloat-linux-x64.tar.gz
+            release/tifDebloat-dist-linux-x64.tar.gz
           retention-days: 30
 
       - name: Create Release
@@ -94,6 +97,7 @@ jobs:
           files: |
             release/tifDebloat
             release/tifDebloat-linux-x64.tar.gz
+            release/tifDebloat-dist-linux-x64.tar.gz
           draft: false
           prerelease: false
         env:
