@@ -1,6 +1,6 @@
-# Building TIFF Compiler for Linux
+# Building TIFF Debloater for Linux
 
-This guide explains how to create a standalone Linux executable for TIFF Compiler that runs without requiring Python or dependencies.
+This guide explains how to create a standalone Linux executable for the TIFF Debloater that runs without requiring Python or dependencies.
 
 ## Option 1: Automated Build with GitHub Actions (Recommended)
 
@@ -72,27 +72,27 @@ cd ~/TIFF_comp
 
 3. **Build the executable:**
    ```bash
-   pyinstaller tiff_comp.spec
+   pyinstaller tifDebloat.spec
    ```
 
 4. **Find your executable:**
    ```bash
-   # The executable is in dist/tiff-comp
-   dist/tiff-comp
+   # The executable is in dist/tifDebloat
+   dist/tifDebloat
    ```
 
 5. **Create a distributable package:**
    ```bash
    # Make it executable
-   chmod +x dist/tiff-comp
+   chmod +x dist/tifDebloat
    
    # Create tarball for distribution
-   tar -czf tiff-comp-linux.tar.gz dist/tiff-comp
+   tar -czf tifDebloat-linux.tar.gz dist/tifDebloat
    ```
 
 ### Run the application:
 ```bash
-./dist/tiff-comp
+./dist/tifDebloat
 ```
 
 ---
@@ -120,18 +120,19 @@ If you need to build on Windows for Linux:
 
 2. **Make it executable:**
    ```bash
-   chmod +x tiff-comp
+   chmod +x tifDebloat
    ```
 
 3. **Test GUI launches:**
    ```bash
-   ./tiff-comp
+   ./tifDebloat
    ```
 
 4. **Test with sample files:**
    - Place RGB TIFF files in the `sample/` folder
    - Use the GUI to select files and convert them
-   - Verify output grayscale TIFFs have correct bit depth
+   - Verify output is single-channel compressed grayscale TIFF for files where RGB channels are identical
+   - Verify non-identical RGB TIFFs are skipped with a clear log message
 
 5. **Check file integrity:**
    ```bash
@@ -146,8 +147,8 @@ If you need to build on Windows for Linux:
 ### Issue: "Permission denied" when running executable
 **Solution:**
 ```bash
-chmod +x tiff-comp
-./tiff-comp
+chmod +x tifDebloat
+./tifDebloat
 ```
 
 ### Issue: "No module named 'tkinter'"
@@ -160,11 +161,11 @@ sudo apt-get install python3-tk
 **Debugging:**
 ```bash
 # Run with console output to see errors
-./tiff-comp 2>&1 | tee debug.log
+./tifDebloat 2>&1 | tee debug.log
 ```
 
 ### Issue: "UPX compression failed"
-**Solution:** UPX may not support your platform. Edit `tiff_comp.spec` and change:
+**Solution:** UPX may not support your platform. Edit `tifDebloat.spec` and change:
 ```python
 upx=False,  # Disable UPX compression
 ```
@@ -176,9 +177,9 @@ Then rebuild.
 ## Distributing Your Executable
 
 ### For Local Use:
-1. Create folder: `~/TIFF_comp_app/`
-2. Copy `tiff-comp` executable
-3. Run with: `~/TIFF_comp_app/tiff-comp`
+1. Create folder: `~/tifDebloat_app/`
+2. Copy `tifDebloat` executable
+3. Run with: `~/tifDebloat_app/tifDebloat`
 
 ### For Distribution (AppImage - Optional):
 If you want to distribute across different Linux distributions:
@@ -189,7 +190,7 @@ wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appima
 chmod +x appimagetool-x86_64.AppImage
 
 # Create AppImage
-./appimagetool-x86_64.AppImage dist/tiff-comp TIFF_Comp.AppImage
+./appimagetool-x86_64.AppImage dist/tifDebloat tifDebloat.AppImage
 chmod +x TIFF_Comp.AppImage
 ```
 

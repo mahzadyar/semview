@@ -1,9 +1,8 @@
 # Development and Build Dependencies
 # Install with: pip install -r requirements-dev.txt
 
-# Core dependencies (same as requirements.txt)
-numpy>=2.0,<3.0
-tifffile>=2024.1.0,<2025.0
+# Core runtime dependencies
+-r requirements.txt
 
 # PyInstaller for creating standalone executables
 pyinstaller>=6.0,<7.0

@@ -24,8 +24,14 @@ def rgb_to_grayscale(rgb_image):
     if rgb_image.ndim == 2:
         # Already grayscale
         return rgb_image
+
+    # Debloating path: when RGB channels are identical, preserve exact values
+    # by taking one channel directly instead of recomputing weighted luminance.
+    if rgb_image.ndim == 3 and rgb_image.shape[2] in (3, 4):
+        if np.array_equal(rgb_image[..., 0], rgb_image[..., 1]) and np.array_equal(rgb_image[..., 0], rgb_image[..., 2]):
+            return rgb_image[..., 0].copy()
     
-    # Standard weighting for human perception: 0.299 R, 0.587 G, 0.114 B
+    # Fallback weighting for non-identical RGB inputs
     # Use float64 for intermediate calculations to avoid overflow/underflow
     original_dtype = rgb_image.dtype
     gray = (
@@ -41,6 +47,19 @@ def rgb_to_grayscale(rgb_image):
         gray = np.clip(gray, info.min, info.max)
     
     return gray.astype(original_dtype)
+
+def has_identical_rgb_channels(image):
+    """
+    Returns True when the first three channels are exactly identical.
+    Supports RGB and RGBA arrays shaped (H, W, C) where C is 3 or 4.
+    """
+    if not (image.ndim == 3 and image.shape[2] in (3, 4)):
+        return False
+
+    red = image[..., 0]
+    green = image[..., 1]
+    blue = image[..., 2]
+    return np.array_equal(red, green) and np.array_equal(red, blue)
 
 def convert_and_compress(input_path, output_path, compression='zlib'):
     """
@@ -75,6 +94,11 @@ def convert_and_compress(input_path, output_path, compression='zlib'):
         if not (image.ndim == 3 and image.shape[2] in (3, 4)):
             print(f"Skipping non-RGB TIFF: {input_path} (shape={image.shape})")
             return {'success': False, 'skipped': True, 'reason': f'Non-RGB format (shape={image.shape})'}
+
+        # Convert only "grayscale-in-RGB" images where R, G, and B are identical.
+        if not has_identical_rgb_channels(image):
+            print(f"Skipping RGB TIFF with non-identical channels: {input_path}")
+            return {'success': False, 'skipped': True, 'reason': 'RGB channels are not identical'}
 
         # Convert RGB to grayscale
         gray_image = rgb_to_grayscale(image)

@@ -1,13 +1,14 @@
-# TIFF Converter - Grayscale & Compress
+# TIFF Debloater for Scientific TIFFs
 
-A cross-platform GUI application for converting TIFF images to grayscale with ZIP compression while preserving all metadata tags.
+A cross-platform GUI application focused on debloating uncompressed TIFF images that are stored as RGB but are actually grayscale (identical R, G, and B channels). The tool converts these to compressed single-channel grayscale TIFFs while preserving scientific metadata and custom tags.
 
 ## Features
 
-- **RGB-Only Filter**: Automatically skips grayscale images; only processes RGB/RGBA files
-- **Grayscale Conversion**: Converts RGB/RGBA images to grayscale using ITU-R 601-2 standard luminosity weighting
-- **Compression**: Applies ZIP (Deflate) compression to reduce file size
-- **Metadata Preservation**: Preserves all TIFF tags including custom SEM device metadata
+- **Debloating Target Filter**: Processes only RGB/RGBA TIFFs where R, G, and B are identical
+- **Strict Skip Criteria**: Automatically skips TIFFs when RGB channels are not identical
+- **Single-Channel Output**: Converts accepted RGB-grayscale TIFFs to one-channel grayscale output
+- **Compression**: Applies ZIP (Deflate) compression by default to reduce file size
+- **Metadata Preservation**: Preserves TIFF tags including custom scientific instrument metadata (e.g., SEM)
 - **Batch Processing**: Convert single files or entire folder trees recursively
 - **Cross-Platform**: Works on Windows and Linux
 - **File Count Preview**: Shows how many TIFFs will be processed before starting
@@ -26,12 +27,12 @@ No Python or dependencies required! Download a pre-built executable:
 
 1. **Download from GitHub Actions:**
    - Go to the [Releases](../../releases) page
-   - Download `tiff-comp` or `tiff-comp-linux-x64.tar.gz`
+   - Download `tifDebloat` or `tifDebloat-linux-x64.tar.gz`
 
 2. **Run directly:**
    ```bash
-   chmod +x tiff-comp
-   ./tiff-comp
+   chmod +x tifDebloat
+   ./tifDebloat
    ```
 
 **See [BUILD_LINUX.md](BUILD_LINUX.md) for detailed build instructions or to build your own executable.**
@@ -139,18 +140,14 @@ done
 
 ## Conversion Details
 
-### RGB Filter
-- **Only RGB/RGBA images are processed** (3 or 4 channels)
-- Grayscale images (2D arrays) are automatically skipped with a message
-- Other formats are also skipped
-- In batch mode, skipped files are reported in the log
-- Allows safe batch processing of mixed image types
+### Debloating Criteria
+- **Only RGB/RGBA TIFFs are considered** (3 or 4 channels)
+- **R, G, and B channels must be exactly identical**
+- If channels are not identical, the file is skipped and reported
+- Grayscale (2D) TIFFs are skipped because they are already debloated
+- Other unsupported TIFF layouts are also skipped
 
-### Grayscale Algorithm
-Uses standard ITU-R 601-2 luminosity weights:
-- Red: 0.2989
-- Green: 0.5870
-- Blue: 0.1140
+This behavior is designed to safely debloat only files that are grayscale data wrapped in RGB storage.
 
 ### Compression Details
 
@@ -170,7 +167,7 @@ All methods preserve image quality (lossless compression - no data loss).
 
 ### Metadata Handling
 - Preserves resolution information (XResolution, YResolution, ResolutionUnit)
-- Preserves custom tags (e.g., FEI SEM metadata)
+- Preserves custom tags (e.g., FEI SEM and other scientific device metadata)
 - Complex metadata values (dicts, nested structures) are JSON-encoded for storage
 - Automatically filters out non-portable structural tags (ImageWidth, ImageLength, etc.)
 
@@ -188,10 +185,11 @@ Ensure your folder contains `.tif` or `.tiff` files. The tool searches recursive
 ### Files Skipped During Batch Processing
 The tool automatically skips:
 - **Grayscale images** (2D arrays with shape like `(height, width)`)
+- **RGB/RGBA TIFFs where R, G, and B are not identical**
 - **Non-RGB/RGBA formats** (single channel, 5+ channels, etc.)
 - Non-TIFF files
 
-This is intentional to ensure only RGB images are converted. Check the log for detailed skip reasons.
+This is intentional to ensure only grayscale-in-RGB TIFFs are debloated. Check the log for detailed skip reasons.
 
 ### Permission Denied (Replace Mode)
 If "Replace Original" fails, check that:
@@ -219,7 +217,8 @@ sudo dnf install python3-tkinter
 - **Custom**: FEI_HELIOS (SEM device metadata)
 
 **After Conversion:**
-- All standard tags preserved
+- Converted to single-channel compressed grayscale
+- All standard tags preserved where applicable
 - FEI_HELIOS and other custom tags preserved (JSON-encoded if complex)
 - Resolution information maintained
 - New compression tag added (ZIP)

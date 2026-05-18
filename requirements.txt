@@ -1,2 +1,4 @@
+# Runtime dependencies
+# Note: tkinter is part of Python standard library (not a pip package).
 numpy>=2.0,<3.0
 tifffile>=2024.1.0,<2025.0

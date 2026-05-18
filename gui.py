@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-TIFF Converter GUI - Cross-platform (Windows/Linux) UI for TIFF compression tool.
+tifDebloat GUI - Cross-platform (Windows/Linux) UI for TIFF debloating tool.
 """
 
 import tkinter as tk
@@ -19,7 +19,7 @@ from convert_tif import convert_and_compress
 class TiffConverterGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("TIFF Converter - Grayscale & Compress")
+        self.root.title("tifDebloat - TIFF Debloater")
         self.root.geometry("750x900")
         self.root.resizable(True, True)
         
