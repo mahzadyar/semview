@@ -1,5 +1,8 @@
 # TIFF Debloater for Scientific TIFFs
 
+**Release:** v1.2.0 — 2026-05-18
+
+
 A cross-platform GUI application focused on debloating uncompressed TIFF images that are stored as RGB but are actually grayscale (identical R, G, and B channels). The tool converts these to compressed single-channel grayscale TIFFs while preserving scientific metadata and custom tags.
 
 ## Features
@@ -14,7 +17,7 @@ A cross-platform GUI application focused on debloating uncompressed TIFF images 
 - **File Count Preview**: Shows how many TIFFs will be processed before starting
 - **Cancellation Support**: Pause/cancel long conversions anytime
 - **Multiple Output Modes**:
-  - **Add Suffix**: Adds a suffix to filename (e.g., `image_gray_compressed.tif`)
+   - **Add Suffix**: Adds a suffix to filename (e.g., `image_debloated.tif`)
   - **Output Folder**: Save all converted files to a specified folder
   - **Replace Original**: Overwrite the original files
 - **Settings Persistence**: Remembers your last settings
@@ -85,7 +88,7 @@ python3 gui.py
 
 1. **Select Input**: Click "Browse File" for a single TIFF or "Browse Folder" for batch processing
 2. **Choose Output Mode**:
-   - **Add Suffix**: Enter suffix (default: `_gray_compressed`)
+   - **Add Suffix**: Enter suffix (default: `_debloated`)
    - **Output Folder**: Select destination folder for converted files; the source subfolder structure is replicated there
    - **Replace Original**: Overwrite source files in place, keeping the same path
 3. **Select Compression Method**:
@@ -105,7 +108,7 @@ python convert_tif.py input.tif output.tif
 
 Example:
 ```bash
-python convert_tif.py sample/A1_005.tif sample/A1_005_gray_compressed.tif
+python convert_tif.py sample/A1_005.tif sample/A1_005_debloated.tif
 ```
 
 **Note:** To use different compression methods, use the GUI or modify the Python code to call `convert_and_compress(input, output, compression='method')` where method is `'zlib'` (default), `'lzw'`, or `'none'`.
@@ -115,7 +118,7 @@ python convert_tif.py sample/A1_005.tif sample/A1_005_gray_compressed.tif
 ```powershell
 Get-ChildItem -Path sample -Filter *.tif | ForEach-Object {
   $in = $_.FullName
-  $out = Join-Path $_.DirectoryName ($_.BaseName + '_gray_compressed.tif')
+   $out = Join-Path $_.DirectoryName ($_.BaseName + '_debloated.tif')
   python convert_tif.py $in $out
 }
 ```
@@ -124,7 +127,7 @@ Get-ChildItem -Path sample -Filter *.tif | ForEach-Object {
 
 ```bash
 for file in sample/*.tif; do
-  output="${file%.*}_gray_compressed.tif"
+   output="${file%.*}_debloated.tif"
   python3 convert_tif.py "$file" "$output"
 done
 ```
