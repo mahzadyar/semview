@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.0] - 2026-05-20
+### Added
+- Unified graphical interface: Integrated the image viewer, metadata analyzer, and batch converter into a single `gui.py` application.
+- Added explicit UI options to toggle "Skip Color Images" and "Force RGB to Grayscale" for maximum flexibility.
+- File Browser tree now dynamically supports selecting a single file or a whole directory for batch conversion.
+- Added 8-bit downsampling normalization for processing high bit-depth files (e.g. 16-bit or 32-bit images).
+- Customizable metadata assignment: select any row in the Extra Tags table and dynamically map it as `PixelSizeX` or `PixelSizeY` using a context menu.
+- Organized settings layout categorizing options under Compression, Manipulation, and Save sections.
+
+### Changed
+- `utils/gui_metadata.py` has been fully merged into `gui.py` and removed.
+- Refactored `convert_and_compress` mathematically separating grayscale preservation from purely compression logic.
+- Consolidated the build pipeline: replaced separate Linux and Windows workflows with a single, optimized GitHub Action `build.yml`.
+- Updated default fallback suffix tag to `_processed`.
+- Documentation unified into a single `README.md`.
+
 ## [1.2.0] - 2026-05-18
 ### Added
 - Folder browser in the GUI with lazy directory loading and click-to-load TIFFs.

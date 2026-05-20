@@ -1,6 +1,6 @@
-# Building TIFF Debloater for Linux
+# Building SEMView for Linux
 
-This guide explains how to create a standalone Linux executable for the TIFF Debloater that runs without requiring Python or dependencies.
+This guide explains how to create a standalone Linux executable for SEMView that runs without requiring Python or dependencies.
 
 ## Option 1: Automated Build with GitHub Actions (Recommended)
 
@@ -34,10 +34,10 @@ This guide explains how to create a standalone Linux executable for the TIFF Deb
 4. **Run on Linux Mint:**
    ```bash
    # Make executable
-   chmod +x tiff-comp
+   chmod +x SEMView
    
    # Run directly
-   ./tiff-comp
+   ./SEMView
    ```
 
 ---
@@ -72,27 +72,27 @@ cd ~/TIFF_comp
 
 3. **Build the executable:**
    ```bash
-   pyinstaller tifDebloat.spec
+   pyinstaller semview.spec
    ```
 
 4. **Find your executable:**
    ```bash
-   # The executable is in dist/tifDebloat
-   dist/tifDebloat
+   # The executable is in dist/SEMView
+   dist/SEMView
    ```
 
 5. **Create a distributable package:**
    ```bash
    # Make it executable
-   chmod +x dist/tifDebloat
+   chmod +x dist/SEMView
    
    # Create tarball for distribution
-   tar -czf tifDebloat-linux.tar.gz dist/tifDebloat
+   tar -czf semview-linux.tar.gz dist/SEMView
    ```
 
 ### Run the application:
 ```bash
-./dist/tifDebloat
+./dist/SEMView
 ```
 
 ---
@@ -120,12 +120,12 @@ If you need to build on Windows for Linux:
 
 2. **Make it executable:**
    ```bash
-   chmod +x tifDebloat
+   chmod +x SEMView
    ```
 
 3. **Test GUI launches:**
    ```bash
-   ./tifDebloat
+   ./SEMView
    ```
 
 4. **Test with sample files:**
@@ -147,8 +147,8 @@ If you need to build on Windows for Linux:
 ### Issue: "Permission denied" when running executable
 **Solution:**
 ```bash
-chmod +x tifDebloat
-./tifDebloat
+chmod +x SEMView
+./SEMView
 ```
 
 ### Issue: "No module named 'tkinter'"
@@ -157,15 +157,15 @@ chmod +x tifDebloat
 sudo apt-get install python3-tk
 ```
 
-### Issue: GUI doesn't appear or crashes
+### Issue: "GUI doesn't appear or crashes
 **Debugging:**
 ```bash
 # Run with console output to see errors
-./tifDebloat 2>&1 | tee debug.log
+./SEMView 2>&1 | tee debug.log
 ```
 
 ### Issue: "UPX compression failed"
-**Solution:** UPX may not support your platform. Edit `tifDebloat.spec` and change:
+**Solution:** UPX may not support your platform. Edit `semview.spec` and change:
 ```python
 upx=False,  # Disable UPX compression
 ```
@@ -177,9 +177,9 @@ Then rebuild.
 ## Distributing Your Executable
 
 ### For Local Use:
-1. Create folder: `~/tifDebloat_app/`
-2. Copy `tifDebloat` executable
-3. Run with: `~/tifDebloat_app/tifDebloat`
+1. Create folder: `~/semview_app/`
+2. Copy `SEMView` executable
+3. Run with: `~/semview_app/SEMView`
 
 ### For Distribution (AppImage - Optional):
 If you want to distribute across different Linux distributions:
@@ -190,11 +190,11 @@ wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appima
 chmod +x appimagetool-x86_64.AppImage
 
 # Create AppImage
-./appimagetool-x86_64.AppImage dist/tifDebloat tifDebloat.AppImage
-chmod +x TIFF_Comp.AppImage
+./appimagetool-x86_64.AppImage dist/SEMView SEMView.AppImage
+chmod +x SEMView.AppImage
 ```
 
-Then users can simply run: `./TIFF_Comp.AppImage`
+Then users can simply run: `./SEMView.AppImage`
 
 ---
 
@@ -227,6 +227,6 @@ When you update the code:
 
 ## Need Help?
 
-- **GitHub Actions not working?** Check `.github/workflows/build-linux.yml`
+- **GitHub Actions not working?** Check `.github/workflows/build.yml`
 - **Build errors?** Review `pyinstaller` warnings in action logs
 - **Runtime issues?** Enable debug logging in `gui.py`

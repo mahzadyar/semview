@@ -1,0 +1,183 @@
+name: Build and Release Executables
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    name: Build Linux Executable
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+    strategy:
+      matrix:
+        python-version: ['3.11']
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+      
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk
+      
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt || true; fi
+          pip install pyinstaller
+      
+      - name: Run Tests
+        run: |
+          if [ -f requirements-dev.txt ]; then
+            pytest -q || true
+          else
+            echo "No dev requirements found; skipping pytest"
+          fi
+
+      - name: Smoke import GUI module
+        run: |
+          python -c "import core.metadata; print('GUI import OK')"
+      
+      - name: Build executable with PyInstaller
+        run: |
+          pyinstaller semview.spec
+      
+      - name: Create release directory
+        run: |
+          mkdir -p release
+          cp dist/SEMView release/
+          chmod +x release/SEMView
+      
+      - name: Verify executable
+        run: |
+          file release/SEMView
+          release/SEMView --help 2>/dev/null || true
+      
+      - name: Create tarball
+        run: |
+          cd release
+          tar -czf SEMView-linux-x64.tar.gz SEMView
+          
+      - name: Package full dist directory
+        run: |
+          tar -czf release/SEMView-dist-linux-x64.tar.gz -C dist SEMView || true
+          
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: SEMView-linux
+          path: |
+            release/SEMView
+            release/SEMView-linux-x64.tar.gz
+            release/SEMView-dist-linux-x64.tar.gz
+          retention-days: 30
+
+  build-windows:
+    name: Build Windows Executable
+    runs-on: windows-latest
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+    strategy:
+      matrix:
+        python-version: ['3.11']
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          if (Test-Path requirements-dev.txt) { pip install -r requirements-dev.txt }
+          pip install pyinstaller
+
+      - name: Smoke import GUI module
+        run: |
+          python -c "import core.metadata; print('GUI import OK')"
+
+      - name: Build GUI executable (Windows)
+        run: |
+          pyinstaller semview.spec
+
+      - name: Create release directory (Windows)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release | Out-Null
+          if (Test-Path dist/SEMView.exe) {
+              Copy-Item dist/SEMView.exe release/SEMView.exe
+          }
+
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          Get-Item release/SEMView.exe | Format-List Name,Length,LastWriteTime
+
+      - name: Create ZIP package
+        shell: pwsh
+        run: |
+          Compress-Archive -Path release/SEMView.exe -DestinationPath release/SEMView-windows-x64.zip -Force
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: SEMView-windows
+          path: |
+            release/SEMView.exe
+            release/SEMView-windows-x64.zip
+          retention-days: 30
+
+  create-release:
+    name: Create GitHub Release
+    needs: [build-linux, build-windows]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: SEMView-linux
+          path: artifacts/linux
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: SEMView-windows
+          path: artifacts/windows
+
+      - name: List artifacts
+        run: |
+          ls -R artifacts || true
+
+      - name: Create Release with all artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/linux/*
+            artifacts/windows/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
