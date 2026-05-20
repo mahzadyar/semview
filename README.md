@@ -1,15 +1,15 @@
 # SEMView - Scientific TIFF Explorer & Optimizer
 
-**Release:** v2.0.0 — 2026-05-20
+**Release:** v2.1.0 — 2026-05-20
 
 A cross-platform GUI application designed as an all-in-one studio for analyzing, viewing, and optimizing scientific TIFF images (specifically tailored for SEM devices). It serves as both a hierarchical metadata viewer and a powerful batch-processing optimizer, seamlessly converting oversized RGB-encoded grayscale files back to optimized single-channel TIFFs without losing structural or proprietary scientific metadata.
 
-## What's New in v2.0.0
-- **Unified Interface:** The metadata viewer and the batch converter have been fully merged into one cohesive interface.
-- **Conversion Toggles:** You can now optionally bypass grayscale conversion or choose not to skip colored images.
-- **Interactive File Browser:** Select a single file to view its preview and metadata, or select a folder to batch convert its entire contents.
-- **8-Bit Downsampling:** Convert high bit-depth files (e.g. 16-bit) to normalized 8-bit grayscale for optimization and compatibility.
-- **Customizable Pixel Sizes:** Directly map any metadata row (such as custom pixel size keys) as `PixelSizeX` or `PixelSizeY` using a context menu in the Extra Tags table.
+## What's New in v2.1.0
+- **Checkbox File Selection:** Select multiple files or entire folders inside the directory browser for bulk batch processing.
+- **Customizable Databar Height:** Map any metadata row (such as custom DatabarHeight keys) using a context menu in the Extra Tags table (in addition to `PixelSizeX` and `PixelSizeY`).
+- **Improved Element Clicks:** Replaced coordinate hit testing with robust Treeview element-based click identification to ensure reliable checkbox toggles.
+- **System Root Defaults:** Directory browser defaults to logical drives ("This PC" on Windows, "/" on Linux) if no history exists.
+- **New Icons & Design:** Custom-designed folder/file icons with visual checkbox indicators and mountain-themed file icons.
 
 ## Features
 
@@ -69,8 +69,8 @@ python gui.py
    - **Skip Color Images**: Keep this checked to avoid destroying RGB data if a multi-color image is accidentally fed in.
    - **Force RGB to Grayscale**: Keep this checked to convert images mathematically to a single channel.
 4. **Convert**:
-   - Highlighting a **file** and clicking "Convert Selected" processes that standalone file.
-   - Highlighting a **folder** and clicking "Convert Selected" batch-converts all TIFFs inside that folder recursively.
+   - Check the boxes next to files/folders and click **"Process"** to batch-convert all selected items.
+   - If no items are checked, clicking **"Process"** will fall back to processing the currently highlighted/selected file.
 5. **Logs**: Check the bottom log screen tracking skipped files, errors, and successful completions.
 
 ## Command Line Usage

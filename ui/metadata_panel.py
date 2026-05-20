@@ -41,7 +41,7 @@ def flatten_metadata_rows(data: Any, category: str = "", rows: Optional[list] = 
         rows.append((category, "", format_table_value(data)))
     return rows
 
-def populate_metadata_table(tree: ttk.Treeview, rows: list, include_category: bool, x_path: str = "", y_path: str = "") -> None:
+def populate_metadata_table(tree: ttk.Treeview, rows: list, include_category: bool, x_path: str = "", y_path: str = "", databar_height_path: str = "") -> None:
     for item in tree.get_children():
         tree.delete(item)
     last_category = None
@@ -50,13 +50,25 @@ def populate_metadata_table(tree: ttk.Treeview, rows: list, include_category: bo
             category, key, value = row
             
             tag_path = f"{category.strip()} / {key.strip()}" if category and key else (category.strip() or key.strip())
-            use_as = ""
-            if tag_path and tag_path == x_path and tag_path == y_path:
+            
+            labels = []
+            if tag_path and tag_path == x_path:
+                labels.append("PixelSizeX")
+            if tag_path and tag_path == y_path:
+                labels.append("PixelSizeY")
+            if tag_path and tag_path == databar_height_path:
+                labels.append("DatabarHeight")
+                
+            if len(labels) == 3:
+                use_as = "[ PixelSizeX, Y & DatabarHeight ]"
+            elif len(labels) == 2 and "PixelSizeX" in labels and "PixelSizeY" in labels:
                 use_as = "[ PixelSizeX & Y ]"
-            elif tag_path and tag_path == x_path:
-                use_as = "[ PixelSizeX ]"
-            elif tag_path and tag_path == y_path:
-                use_as = "[ PixelSizeY ]"
+            elif len(labels) == 2:
+                use_as = f"[ {' & '.join(labels)} ]"
+            elif len(labels) == 1:
+                use_as = f"[ {labels[0]} ]"
+            else:
+                use_as = ""
                 
             if last_category is not None and category != last_category:
                 # Add horizontal line separating categories

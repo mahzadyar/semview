@@ -29,7 +29,7 @@ from ui.settings import load_settings, save_settings
 class TiffAppGUI:
     def __init__(self, root: tk.Tk):
         self.root = root
-        self.root.title("SEMView - Unified GUI")
+        self.root.title("SEMView - SEM TIFF Image Processing & Metadata Utility")
         self.root.geometry("1400x900")
         
         # UI state variables
@@ -42,6 +42,7 @@ class TiffAppGUI:
         self.update_resolution_var = tk.BooleanVar(value=True)
         self.x_res_tag_path = tk.StringVar(value="FEI_HELIOS / Scan / PixelWidth")
         self.y_res_tag_path = tk.StringVar(value="FEI_HELIOS / Scan / PixelHeight")
+        self.databar_height_tag_path = tk.StringVar(value="FEI_HELIOS / PrivateFei / DatabarHeight")
         
         self.crop_databar_var = tk.BooleanVar(value=False)
         self.databar_pos_var = tk.StringVar(value="bottom")
@@ -62,6 +63,7 @@ class TiffAppGUI:
         self._preview_resize_job: Optional[str] = None
         self._browser_item_paths: Dict[str, str] = {}
         self._browser_loaded_dirs: set[str] = set()
+        self.checked_items: set[str] = set()
         
         self._init_icons()
         self._setup_ui()
@@ -70,28 +72,63 @@ class TiffAppGUI:
     def _init_icons(self):
         from PIL import Image, ImageDraw, ImageTk
         
-        # Folder Icon (Golden folder)
+        # 1. Base Folder and File Icons (16x16)
+        # Golden folder
         folder_img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
-        draw = ImageDraw.Draw(folder_img)
-        draw.polygon([(2, 2), (7, 2), (9, 5), (2, 5)], fill="#DDA010")
+        draw_f = ImageDraw.Draw(folder_img)
+        draw_f.polygon([(2, 2), (7, 2), (9, 5), (2, 5)], fill="#DDA010")
         try:
-            draw.rounded_rectangle([1, 4, 14, 13], radius=1, fill="#FFCA28", outline="#DDA010", width=1)
+            draw_f.rounded_rectangle([1, 4, 14, 13], radius=1, fill="#FFCA28", outline="#DDA010", width=1)
         except AttributeError:
-            draw.rectangle([1, 4, 14, 13], fill="#FFCA28", outline="#DDA010", width=1)
-        self.folder_icon = ImageTk.PhotoImage(folder_img)
-        
-        # File Icon (Sleek document image)
+            draw_f.rectangle([1, 4, 14, 13], fill="#FFCA28", outline="#DDA010", width=1)
+            
+        # TIFF/Image Icon (Redesigned to look like a landscape image)
         file_img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
-        draw = ImageDraw.Draw(file_img)
+        draw_file = ImageDraw.Draw(file_img)
         try:
-            draw.rounded_rectangle([2, 1, 13, 14], radius=1, fill="#FFFFFF", outline="#78909C", width=1)
+            draw_file.rounded_rectangle([1, 1, 14, 14], radius=1, fill="#ECEFF1", outline="#37474F", width=1)
         except AttributeError:
-            draw.rectangle([2, 1, 13, 14], fill="#FFFFFF", outline="#78909C", width=1)
-        draw.polygon([(9, 2), (12, 5), (9, 5)], fill="#78909C")
-        draw.line([5, 7, 11, 7], fill="#1E88E5", width=1)
-        draw.line([5, 9, 11, 9], fill="#1E88E5", width=1)
-        draw.line([5, 11, 9, 11], fill="#1E88E5", width=1)
-        self.file_icon = ImageTk.PhotoImage(file_img)
+            draw_file.rectangle([1, 1, 14, 14], fill="#ECEFF1", outline="#37474F", width=1)
+        # Mountains
+        draw_file.polygon([(2, 13), (7, 6), (11, 13)], fill="#26A69A")
+        draw_file.polygon([(6, 13), (10, 8), (14, 13)], fill="#00897B")
+        # Sun
+        draw_file.ellipse([9, 3, 12, 6], fill="#FFB300")
+        
+        # 2. Checkbox elements (Unchecked at x=2, y=2, size 12x12)
+        chk_off = Image.new("RGBA", (32, 16), (0, 0, 0, 0))
+        draw_off = ImageDraw.Draw(chk_off)
+        try:
+            draw_off.rounded_rectangle([2, 2, 13, 13], radius=2, fill="#FFFFFF", outline="#78909C", width=1)
+        except AttributeError:
+            draw_off.rectangle([2, 2, 13, 13], fill="#FFFFFF", outline="#78909C", width=1)
+            
+        chk_on = Image.new("RGBA", (32, 16), (0, 0, 0, 0))
+        draw_on = ImageDraw.Draw(chk_on)
+        try:
+            draw_on.rounded_rectangle([2, 2, 13, 13], radius=2, fill="#2196F3", outline="#0D47A1", width=1)
+        except AttributeError:
+            draw_on.rectangle([2, 2, 13, 13], fill="#2196F3", outline="#0D47A1", width=1)
+        draw_on.line([(4, 7), (7, 10), (11, 4)], fill="#FFFFFF", width=2)
+        
+        # 3. Create composites
+        # Folders
+        folder_off = chk_off.copy()
+        folder_off.paste(folder_img, (16, 0), folder_img)
+        self.folder_icon_unchecked = ImageTk.PhotoImage(folder_off)
+        
+        folder_on = chk_on.copy()
+        folder_on.paste(folder_img, (16, 0), folder_img)
+        self.folder_icon_checked = ImageTk.PhotoImage(folder_on)
+        
+        # Files
+        file_off = chk_off.copy()
+        file_off.paste(file_img, (16, 0), file_img)
+        self.file_icon_unchecked = ImageTk.PhotoImage(file_off)
+        
+        file_on = chk_on.copy()
+        file_on.paste(file_img, (16, 0), file_img)
+        self.file_icon_checked = ImageTk.PhotoImage(file_on)
 
     def _setup_ui(self):
         top_h_paned = ttk.Panedwindow(self.root, orient=tk.HORIZONTAL)
@@ -138,6 +175,8 @@ class TiffAppGUI:
 
         self.browser_tree.bind("<<TreeviewOpen>>", self._on_browser_open)
         self.browser_tree.bind("<<TreeviewSelect>>", self._on_browser_select)
+        self.browser_tree.bind("<ButtonRelease-1>", self._on_browser_click)
+        self.browser_tree.bind("<space>", self._on_browser_space)
 
         # PREVIEW
         self.image_label = tk.Label(preview_frame, bg="gray20", relief=tk.SUNKEN)
@@ -230,7 +269,7 @@ class TiffAppGUI:
         # Buttons Row inside Save section
         btn_row = ttk.Frame(save_lf)
         btn_row.pack(fill=tk.X, pady=(2, 5), padx=5)
-        self.convert_btn = ttk.Button(btn_row, text="Convert Selected", command=self._start_conversion)
+        self.convert_btn = ttk.Button(btn_row, text="Process", command=self._start_conversion)
         self.convert_btn.pack(side=tk.LEFT, padx=(0, 5))
         self.cancel_btn = ttk.Button(btn_row, text="Cancel", command=self._request_cancel, state=tk.DISABLED)
         self.cancel_btn.pack(side=tk.LEFT, padx=5)
@@ -273,6 +312,7 @@ class TiffAppGUI:
         self.extra_tree_menu.add_command(label="Use as PixelSizeX (Width)", command=lambda: self._set_resolution_tag("x"))
         self.extra_tree_menu.add_command(label="Use as PixelSizeY (Height)", command=lambda: self._set_resolution_tag("y"))
         self.extra_tree_menu.add_command(label="Use as Both (PixelSizeX & Y)", command=lambda: self._set_resolution_tag("both"))
+        self.extra_tree_menu.add_command(label="Use as Databar Height", command=lambda: self._set_resolution_tag("height"))
         self.extra_tree_menu.add_separator()
         self.extra_tree_menu.add_command(label="Clear Assignment", command=lambda: self._set_resolution_tag("clear"))
         scrollbar2 = ttk.Scrollbar(extra_frame, orient=tk.VERTICAL, command=self.extra_tree.yview)
@@ -330,18 +370,32 @@ class TiffAppGUI:
             self.x_res_tag_path.set(tag_path)
             if self.y_res_tag_path.get() == tag_path:
                 self.y_res_tag_path.set("")
+            if self.databar_height_tag_path.get() == tag_path:
+                self.databar_height_tag_path.set("")
         elif target == "y":
             self.y_res_tag_path.set(tag_path)
             if self.x_res_tag_path.get() == tag_path:
                 self.x_res_tag_path.set("")
+            if self.databar_height_tag_path.get() == tag_path:
+                self.databar_height_tag_path.set("")
         elif target == "both":
             self.x_res_tag_path.set(tag_path)
             self.y_res_tag_path.set(tag_path)
+            if self.databar_height_tag_path.get() == tag_path:
+                self.databar_height_tag_path.set("")
+        elif target == "height":
+            self.databar_height_tag_path.set(tag_path)
+            if self.x_res_tag_path.get() == tag_path:
+                self.x_res_tag_path.set("")
+            if self.y_res_tag_path.get() == tag_path:
+                self.y_res_tag_path.set("")
         elif target == "clear":
             if self.x_res_tag_path.get() == tag_path:
                 self.x_res_tag_path.set("")
             if self.y_res_tag_path.get() == tag_path:
                 self.y_res_tag_path.set("")
+            if self.databar_height_tag_path.get() == tag_path:
+                self.databar_height_tag_path.set("")
                 
         # Re-render the metadata to update the 'Use As' column display
         if self.current_file:
@@ -410,6 +464,38 @@ class TiffAppGUI:
         if folder_path:
             self._set_browser_root(folder_path)
 
+    def _init_browser_root(self):
+        for item in self.browser_tree.get_children():
+            self.browser_tree.delete(item)
+        self._browser_item_paths.clear()
+        self._browser_loaded_dirs.clear()
+        self.checked_items.clear()
+        
+        if os.name == "nt":
+            self.browser_path_label.config(text="This PC")
+            root_id = self.browser_tree.insert("", "end", text="This PC", open=True, image=self.folder_icon_unchecked)
+            self._browser_item_paths[root_id] = "__THIS_PC__"
+            
+            import ctypes
+            import string
+            bitmask = ctypes.windll.kernel32.GetLogicalDrives()
+            for letter in string.ascii_uppercase:
+                if bitmask & 1:
+                    drive_path = f"{letter}:\\"
+                    try:
+                        if os.path.exists(drive_path):
+                            drive_id = self.browser_tree.insert(root_id, "end", text=drive_path, open=False, image=self.folder_icon_unchecked)
+                            self._browser_item_paths[drive_id] = drive_path
+                            self.browser_tree.insert(drive_id, "end", text="Loading...", tags=("placeholder",))
+                    except Exception:
+                        pass
+                bitmask >>= 1
+        else:
+            self.browser_path_label.config(text="/")
+            root_id = self.browser_tree.insert("", "end", text="/", open=True, image=self.folder_icon_unchecked)
+            self._browser_item_paths[root_id] = "/"
+            self._populate_browser_dir(root_id, "/")
+
     def _set_browser_root(self, folder_path: str):
         folder_path = os.path.abspath(folder_path)
         if not os.path.isdir(folder_path): return
@@ -419,44 +505,110 @@ class TiffAppGUI:
             self.browser_tree.delete(item)
         self._browser_item_paths.clear()
         self._browser_loaded_dirs.clear()
+        self.checked_items.clear()
         root_text = os.path.basename(folder_path) or folder_path
-        root_id = self.browser_tree.insert("", "end", text=root_text, open=True, image=self.folder_icon)
+        root_id = self.browser_tree.insert("", "end", text=root_text, open=True, image=self.folder_icon_unchecked)
         self._browser_item_paths[root_id] = folder_path
         self._populate_browser_dir(root_id, folder_path)
         self.browser_tree.selection_set(root_id)
         self.browser_tree.focus(root_id)
 
+    def _is_tiff_file(self, filename: str) -> bool:
+        ln = filename.lower()
+        return ln.endswith(".tif") or ln.endswith(".tiff")
+
     def _populate_browser_dir(self, parent_id: str, dir_path: str):
         if dir_path in self._browser_loaded_dirs: return
         self._browser_loaded_dirs.add(dir_path)
+        
+        parent_checked = dir_path in self.checked_items
+        
         try:
             entries = sorted(os.scandir(dir_path), key=lambda entry: (not entry.is_dir(), entry.name.lower()))
         except OSError:
             return
         for entry in entries:
             if entry.is_dir(follow_symlinks=False):
-                node_id = self.browser_tree.insert(parent_id, "end", text=entry.name, open=False, image=self.folder_icon)
+                img = self.folder_icon_checked if parent_checked else self.folder_icon_unchecked
+                node_id = self.browser_tree.insert(parent_id, "end", text=entry.name, open=False, image=img)
                 self._browser_item_paths[node_id] = entry.path
+                if parent_checked:
+                    self.checked_items.add(entry.path)
                 self.browser_tree.insert(node_id, "end", text="Loading...", tags=("placeholder",))
             elif entry.is_file(follow_symlinks=False) and self._is_tiff_file(entry.name):
-                node_id = self.browser_tree.insert(parent_id, "end", text=entry.name, open=False, image=self.file_icon)
+                img = self.file_icon_checked if parent_checked else self.file_icon_unchecked
+                node_id = self.browser_tree.insert(parent_id, "end", text=entry.name, open=False, image=img)
                 self._browser_item_paths[node_id] = entry.path
+                if parent_checked:
+                    self.checked_items.add(entry.path)
 
-    def _is_tiff_file(self, filename: str) -> bool:
-        ln = filename.lower()
-        return ln.endswith(".tif") or ln.endswith(".tiff")
+    def _toggle_checkbox(self, item_id: str):
+        item_path = self._browser_item_paths.get(item_id)
+        if not item_path:
+            return
+            
+        is_checked = item_path in self.checked_items
+        new_state = not is_checked
+        
+        def recurse_set_checked(n_id, state):
+            n_path = self._browser_item_paths.get(n_id)
+            if not n_path:
+                return
+            if state:
+                self.checked_items.add(n_path)
+            else:
+                self.checked_items.discard(n_path)
+            self._set_item_image(n_id, n_path, state)
+            
+            for child_id in self.browser_tree.get_children(n_id):
+                recurse_set_checked(child_id, state)
+                
+        recurse_set_checked(item_id, new_state)
+
+    def _set_item_image(self, item_id: str, item_path: str, checked: bool):
+        is_dir = os.path.isdir(item_path) or item_path == "__THIS_PC__"
+        if is_dir:
+            img = self.folder_icon_checked if checked else self.folder_icon_unchecked
+        else:
+            img = self.file_icon_checked if checked else self.file_icon_unchecked
+        self.browser_tree.item(item_id, image=img)
+
+    def _on_browser_click(self, event: Any):
+        item_id = self.browser_tree.identify_row(event.y)
+        if not item_id:
+            return
+        element = self.browser_tree.identify_element(event.x, event.y)
+        region = self.browser_tree.identify_region(event.x, event.y)
+        
+        # Toggle checkbox if clicked on the image element
+        if element and "image" in element:
+            self._toggle_checkbox(item_id)
+            return
+            
+        # Fallback click check if coordinates fall near the start of the row (column #0)
+        # where the checkbox/image reside (first 40 pixels on the left of tree column)
+        if region == "tree" and event.x <= 45:
+            # Avoid toggling if click was on the indicator (expand/collapse arrow)
+            if element != "indicator" and element != "Treeitem.indicator":
+                self._toggle_checkbox(item_id)
+
+    def _on_browser_space(self, event: Any):
+        item_id = self.browser_tree.focus()
+        if item_id:
+            self._toggle_checkbox(item_id)
 
     def _on_browser_open(self, event: Any):
         item_id = self.browser_tree.focus()
         if not item_id: return
         item_path = self._browser_item_paths.get(item_id)
-        if not item_path or not os.path.isdir(item_path): return
+        if not item_path or (not os.path.isdir(item_path) and item_path != "__THIS_PC__"): return
         children = self.browser_tree.get_children(item_id)
         if len(children) == 1:
             first_child = children[0]
             if "placeholder" in self.browser_tree.item(first_child, "tags"):
                 self.browser_tree.delete(first_child)
-        self._populate_browser_dir(item_id, item_path)
+        if item_path != "__THIS_PC__":
+            self._populate_browser_dir(item_id, item_path)
 
     def _on_browser_select(self, event: Any):
         item_id = self.browser_tree.focus()
@@ -475,7 +627,7 @@ class TiffAppGUI:
             if len(tif.pages) > 0:
                 page = tif.pages[0]
                 image_array = page.asarray()
-                self.current_databar_height_cached = get_databar_height_from_metadata(page, tif)
+                self.current_databar_height_cached = get_databar_height_from_metadata(page, tif, self.databar_height_tag_path.get())
                 self._display_image_preview(image_array)
                 self._display_metadata(page, tif)
         self.current_file = file_path
@@ -584,7 +736,8 @@ class TiffAppGUI:
         populate_metadata_table(self.basic_tree, basic_rows, include_category=False)
         if extra_rows:
             populate_metadata_table(self.extra_tree, extra_rows, include_category=True, 
-                                    x_path=self.x_res_tag_path.get(), y_path=self.y_res_tag_path.get())
+                                    x_path=self.x_res_tag_path.get(), y_path=self.y_res_tag_path.get(),
+                                    databar_height_path=self.databar_height_tag_path.get())
         else:
             self.extra_tree.insert("", "end", values=("", "", "", "(No extra tags)"))
 
@@ -594,29 +747,49 @@ class TiffAppGUI:
         self._update_status("Cancelling...", "orange")
 
     def _start_conversion(self):
-        selected_id = self.browser_tree.focus()
-        if not selected_id:
-            messagebox.showerror("Error", "Please select a file or folder from the browser.")
-            return
-        
-        path_selected = Path(self._browser_item_paths[selected_id])
-        
         if self.is_converting:
             messagebox.showwarning("Warning", "Conversion already in progress.")
             return
 
-        if path_selected.is_file():
-            file_count = 1
-        elif path_selected.is_dir():
-            # shallow search for simplicity or rglob. Prompt says deeply or shallowly, I will use rglob
-            files = sorted(path_selected.rglob("*.tif")) + sorted(path_selected.rglob("*.tiff"))
-            file_count = len(set(str(fp.resolve()).lower() for fp in files))
-        else:
-            messagebox.showerror("Error", "Path not found.")
+        # Identify items to process
+        items_to_process = list(self.checked_items)
+        is_fallback_mode = False
+        
+        if not items_to_process:
+            focused_id = self.browser_tree.focus()
+            if focused_id:
+                focused_path = self._browser_item_paths.get(focused_id)
+                if focused_path and focused_path != "__THIS_PC__":
+                    items_to_process = [focused_path]
+                    is_fallback_mode = True
+
+        if not items_to_process:
+            messagebox.showerror("Error", "Please select or check files/folders to process.")
             return
 
+        # Resolve paths to files and their associated root directories
+        files_queue = []
+        seen_files = set()
+        
+        for p_str in items_to_process:
+            p = Path(p_str)
+            if p.is_file():
+                if self._is_tiff_file(p.name):
+                    f_resolved = str(p.resolve())
+                    if f_resolved not in seen_files:
+                        seen_files.add(f_resolved)
+                        files_queue.append((p, p.parent))
+            elif p.is_dir():
+                found_files = sorted(p.rglob("*.tif")) + sorted(p.rglob("*.tiff"))
+                for f in found_files:
+                    f_resolved = str(f.resolve())
+                    if f_resolved not in seen_files:
+                        seen_files.add(f_resolved)
+                        files_queue.append((f, p))
+
+        file_count = len(files_queue)
         if file_count == 0:
-            messagebox.showwarning("Warning", "No TIFF files found.")
+            messagebox.showwarning("Warning", "No TIFF files found in the selection.")
             return
 
         preview_msg = f"Found {file_count} TIFF file(s) to process.\n\nRGB to Grayscale: {self.rgb_to_gray_var.get()}\nCrop Databar: {self.crop_databar_var.get()}\n\nProceed?"
@@ -629,11 +802,11 @@ class TiffAppGUI:
         self.cancel_btn.config(state=tk.NORMAL)
         self._clear_log()
         
-        self.conversion_thread = threading.Thread(target=self._conversion_worker, args=(path_selected,))
+        self.conversion_thread = threading.Thread(target=self._conversion_worker, args=(files_queue,))
         self.conversion_thread.daemon = True
         self.conversion_thread.start()
 
-    def _conversion_worker(self, path_selected: Path):
+    def _conversion_worker(self, files_queue: list[tuple[Path, Path]]):
         try:
             mode_mapping = {
                 "Suffix": "suffix",
@@ -649,6 +822,7 @@ class TiffAppGUI:
             update_resolution = self.update_resolution_var.get()
             x_res_tag = self.x_res_tag_path.get()
             y_res_tag = self.y_res_tag_path.get()
+            databar_height_tag = self.databar_height_tag_path.get()
             
             crop_databar = self.crop_databar_var.get()
             databar_pos = self.databar_pos_var.get()
@@ -658,42 +832,34 @@ class TiffAppGUI:
             except ValueError:
                 databar_height_manual = 119
 
-            self._log(f"Starting conversion...")
-            self._log(f"Input: {path_selected}")
+            self._log(f"Starting process...")
+            self._log(f"Queue size: {len(files_queue)} files")
             self._log(f"Mode: {mode}")
             self._log(f"Compression: {compression}")
             self._log(f"Bit Depth: {bit_depth}")
             self._log(f"RGB to Grayscale: {rgb_to_gray}")
             self._log(f"Crop Databar: {crop_databar} ({databar_pos}, {databar_height_mode} height)")
             self._log(f"Update Resolution: {update_resolution}\n")
-            
-            if path_selected.is_file():
-                files = [path_selected]
-                root_dir = path_selected.parent
-            else:
-                files = sorted(path_selected.rglob("*.tif")) + sorted(path_selected.rglob("*.tiff"))
-                files = sorted({str(f.resolve()).lower(): f for f in files}.values(), key=lambda path: str(path).lower())
-                root_dir = path_selected
 
             converted_count = 0
             skipped_count = 0
-            for idx, file_path in enumerate(files):
+            for idx, (file_path, root_dir) in enumerate(files_queue):
                 if self.cancel_requested:
-                    self._log(f"\n⊘ Conversion cancelled.")
+                    self._log(f"\n⊘ Process cancelled.")
                     break
                 
                 relative_path = file_path.relative_to(root_dir)
-                self._update_status(f"Converting {idx + 1} of {len(files)}: {relative_path}", "blue")
+                self._update_status(f"Processing {idx + 1} of {len(files_queue)}: {relative_path}", "blue")
                 
                 if mode == "suffix":
                     relative_parent = file_path.parent.relative_to(root_dir)
-                    output_dir = file_path.parent if path_selected.is_file() else root_dir / relative_parent
+                    output_dir = root_dir / relative_parent
                     output_dir.mkdir(parents=True, exist_ok=True)
                     output_path = output_dir / f"{file_path.stem}{output_value}{file_path.suffix}"
                 elif mode == "folder":
                     output_folder = Path(output_value)
                     relative_parent = file_path.parent.relative_to(root_dir)
-                    output_dir = output_folder if path_selected.is_file() else output_folder / relative_parent
+                    output_dir = output_folder / relative_parent
                     output_dir.mkdir(parents=True, exist_ok=True)
                     output_path = output_dir / file_path.name
                 elif mode == "replace":
@@ -702,7 +868,7 @@ class TiffAppGUI:
                 else:
                     output_path = file_path
 
-                self._log(f"[{idx + 1}/{len(files)}] {relative_path}")
+                self._log(f"[{idx + 1}/{len(files_queue)}] {relative_path}")
                 try:
                     result = convert_and_compress(
                         str(file_path), 
@@ -716,7 +882,8 @@ class TiffAppGUI:
                         databar_height_manual=databar_height_manual,
                         update_resolution=update_resolution,
                         x_res_tag_path=x_res_tag,
-                        y_res_tag_path=y_res_tag
+                        y_res_tag_path=y_res_tag,
+                        databar_height_tag_path=databar_height_tag
                     )
                     
                     if result.get('skipped', False):
@@ -730,19 +897,19 @@ class TiffAppGUI:
                         else:
                             self._log(f"  ✓ Success")
                         converted_count += 1
-                        self.progress_var.set((converted_count / len(files)) * 100)
+                        self.progress_var.set((converted_count / len(files_queue)) * 100)
                     else:
                         self._log(f"  ✗ Error: {result.get('reason','')}")
                 except Exception as e:
                     self._log(f"  ✗ Error: {e}")
             
             total_processed = converted_count + skipped_count
-            self._log(f"\n✓ Complete! {converted_count}/{total_processed} converted, {skipped_count} skipped.")
-            self._update_status(f"Done: {converted_count} converted", "green")
+            self._log(f"\n✓ Complete! {converted_count}/{total_processed} processed, {skipped_count} skipped.")
+            self._update_status(f"Done: {converted_count} processed", "green")
             self.progress_var.set(100)
         except Exception as e:
             self._log(f"Fatal error: {e}")
-            self._update_status("Error during conversion", "red")
+            self._update_status("Error during process", "red")
         finally:
             self.is_converting = False
             self.convert_btn.config(state=tk.NORMAL)
@@ -762,6 +929,7 @@ class TiffAppGUI:
             "update_resolution": self.update_resolution_var.get(),
             "x_res_tag_path": self.x_res_tag_path.get(),
             "y_res_tag_path": self.y_res_tag_path.get(),
+            "databar_height_tag_path": self.databar_height_tag_path.get(),
             "browser_root": self.browser_root
         }
         save_settings(settings)
@@ -788,8 +956,11 @@ class TiffAppGUI:
         if "update_resolution" in settings: self.update_resolution_var.set(settings["update_resolution"])
         if "x_res_tag_path" in settings: self.x_res_tag_path.set(settings["x_res_tag_path"])
         if "y_res_tag_path" in settings: self.y_res_tag_path.set(settings["y_res_tag_path"])
+        if "databar_height_tag_path" in settings: self.databar_height_tag_path.set(settings["databar_height_tag_path"])
         if "browser_root" in settings and settings["browser_root"] and os.path.exists(settings["browser_root"]):
             self._set_browser_root(settings["browser_root"])
+        else:
+            self._init_browser_root()
         self._on_crop_toggle()
 
     def run(self):

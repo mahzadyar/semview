@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0] - 2026-05-20
+### Added
+- Checkbox-based selection in the directory browser to select multiple files or folders for batch processing.
+- Custom `DatabarHeight` mapping: right-click any row in the Extra Tags table and map it as `DatabarHeight` using the context menu.
+- Added modern custom composite icons (folder/file with checkbox indicators).
+- Re-designed the default TIFF icon to use an image-themed icon.
+- Dynamic `Use As` indicator column support for combined mapped tags (e.g. `[ PixelSizeX & DatabarHeight ]`).
+
+### Changed
+- Renamed the process button to "Process".
+- Configured directory browser default to system logical drives ("This PC" on Windows and `/` on Linux) if no saved history exists.
+- Updated GUI title to `SEMView - SEM TIFF Image Processing & Metadata Utility`.
+
+### Fixed
+- Fixed unresponsive clicks on directory browser checkboxes via element-based event routing.
+- Restored missing `_is_tiff_file` helper function preventing crashes during browser scanning.
+
 ## [2.0.0] - 2026-05-20
 ### Added
 - Unified graphical interface: Integrated the image viewer, metadata analyzer, and batch converter into a single `gui.py` application.

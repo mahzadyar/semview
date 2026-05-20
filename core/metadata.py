@@ -108,7 +108,14 @@ def _decode_fei_helios(page, tif) -> Optional[dict]:
         return decoded
     return None
 
-def get_databar_height_from_metadata(page, tif) -> Optional[int]:
+def get_databar_height_from_metadata(page, tif, databar_height_tag_path: str = "FEI_HELIOS / PrivateFei / DatabarHeight") -> Optional[int]:
+    h = get_value_by_path(page, tif, databar_height_tag_path)
+    if h is not None:
+        try:
+            return int(float(h))
+        except (ValueError, TypeError):
+            pass
+            
     decoded = _decode_fei_helios(page, tif)
     if decoded is None:
         return None

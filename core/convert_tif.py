@@ -34,7 +34,8 @@ def convert_and_compress(
     databar_height_manual: int = 119,
     update_resolution: bool = True,
     x_res_tag_path: str = "FEI_HELIOS / Scan / PixelWidth",
-    y_res_tag_path: str = "FEI_HELIOS / Scan / PixelHeight"
+    y_res_tag_path: str = "FEI_HELIOS / Scan / PixelHeight",
+    databar_height_tag_path: str = "FEI_HELIOS / PrivateFei / DatabarHeight"
 ) -> dict:
     """
     Reads a TIFF, converts it to grayscale, and saves it with specified compression,
@@ -88,7 +89,7 @@ def convert_and_compress(
             H = image.shape[0]
             h_crop = None
             if databar_height_mode == 'auto':
-                h_crop = get_databar_height_from_metadata(page, tif)
+                h_crop = get_databar_height_from_metadata(page, tif, databar_height_tag_path)
                 if h_crop is None:
                     h_crop = databar_height_manual
                     print(f"Warning: Could not fetch DatabarHeight from metadata, falling back to manual height: {h_crop}px")
